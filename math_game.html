@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Математический Тренажёр MAX</title>
+
+  <!-- Анимация конфетти -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --card-bg: white;
+      --text-main: #1e293b;
+      --text-sub: #475569;
+      --btn-bg: #f1f5f9;
+      --btn-text: #334155;
+      --input-bg: rgba(255, 255, 255, 0.95);
+    }
+
+    body.theme-space {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --card-bg: #1e293b;
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e0;
+      --btn-bg: #334155;
+      --btn-text: #f1f5f9;
+      --input-bg: #0f172a;
+    }
+
+    body.theme-forest {
+      --bg-gradient: linear-gradient(135deg, #134e5e 0%, #71b280 100%);
+      --card-bg: #f0fdf4;
+      --text-main: #064e3b;
+      --text-sub: #047857;
+      --btn-bg: #dcfce7;
+      --btn-text: #065f46;
+      --input-bg: #ffffff;
+    }
+
+    body.theme-neon {
+      --bg-gradient: linear-gradient(135deg, #2b1055 0%, #7597de 100%);
+      --card-bg: #0d0221;
+      --text-main: #00f5d4;
+      --text-sub: #7b2cbf;
+      --btn-bg: #240046;
+      --btn-text: #ff9e00;
+      --input-bg: #10002b;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg-gradient);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 15px;
+      box-sizing: border-box;
+      transition: background 0.3s;
+    }
+
+    .card {
+      background: var(--card-bg);
+      color: var(--text-main);
+      padding: 25px 30px;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+      text-align: center;
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      transition: background-color 0.4s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    }
+
+    .card.super-combo {
+      box-shadow: 0 0 25px #eab308, 0 0 50px #eab308;
+      border: 3px solid #facc15;
+    }
+
+    .theme-selector {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      display: flex;
+      gap: 5px;
+    }
+
+    .theme-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    .theme-btn:hover { opacity: 1; }
+
+    .bounce { animation: bounceAnim 0.3s ease; }
+    .shake { animation: shakeAnim 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+
+    @keyframes bounceAnim {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @keyframes shakeAnim {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
+
+    .damage-pop {
+      position: absolute;
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: #ff3333;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+      pointer-events: none;
+      z-index: 100;
+      animation: floatUp 0.8s ease-out forwards;
+    }
+
+    .damage-pop.crit {
+      font-size: 2.4rem;
+      color: #facc15;
+      text-shadow: 0 0 12px #dc2626;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.2); }
+      100% { opacity: 0; transform: translateY(-55px) scale(0.9); }
+    }
+
+    .bg-multiply { background-color: #fef08a !important; color: #1e293b !important; }
+    .bg-add { background-color: #fca5a5 !important; color: #1e293b !important; }
+    .bg-subtract { background-color: #93c5fd !important; color: #1e293b !important; }
+    .bg-divide { background-color: #86efac !important; color: #1e293b !important; }
+
+    h1 { margin: 0 0 5px 0; font-size: 26px; }
+
+    .high-score-badge {
+      background: var(--btn-bg);
+      color: var(--text-sub);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    .setting-group { text-align: left; margin: 12px 0; }
+    .setting-title { font-weight: bold; font-size: 13px; color: var(--text-sub); margin-bottom: 6px; }
+
+    .btn-group { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+
+    .opt-btn {
+      flex: 1 1 calc(33% - 6px);
+      min-width: 65px;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: 2px solid transparent;
+      padding: 8px 4px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .opt-btn.active {
+      border-color: #4f46e5;
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+
+    .ops-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; }
+
+    .op-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-sub);
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .range-inputs {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .range-inputs input {
+      width: 50%;
+      padding: 6px;
+      font-size: 14px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e0;
+      text-align: center;
+    }
+
+    .stats-bar { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 16px; }
+    .timer { color: #dc2626; }
+    .score { color: #16a34a; }
+
+    .bar-container { margin-bottom: 10px; position: relative; }
+    .bar-outer {
+      background: #e2e8f0;
+      border-radius: 10px;
+      height: 16px;
+      overflow: hidden;
+      margin-top: 4px;
+      border: 1px solid #cbd5e0;
+    }
+    .bar-inner { height: 100%; transition: width 0.1s linear; }
+    .boss-hp { background: #ef4444; width: 100%; }
+    .player-hp { background: #22c55e; width: 100%; }
+    .bomb-fuse { background: #f97316; width: 100%; }
+
+    .combo-badge {
+      height: 20px;
+      font-weight: 800;
+      color: #ea580c;
+      font-size: 15px;
+      margin-bottom: 5px;
+      visibility: hidden;
+      transition: transform 0.1s ease;
+    }
+
+    .combo-badge.active { visibility: visible; }
+
+    .problem { font-size: 32px; font-weight: bold; margin: 5px 0 15px 0; min-height: 55px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      max-width: 240px;
+      margin: 0 auto 15px auto;
+    }
+    .grid-cell {
+      background: var(--btn-bg);
+      border: 2px solid #cbd5e0;
+      border-radius: 8px;
+      padding: 10px 0;
+      font-weight: bold;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .grid-cell.sum { background: #e0e7ff; color: #4338ca; border-color: #818cf8; }
+    .grid-cell.target { background: #fef08a; border-color: #eab308; color: #854d0e; }
+
+    input[type="number"] {
+      width: 85%;
+      padding: 12px;
+      font-size: 26px;
+      text-align: center;
+      border: 2px solid #cbd5e0;
+      border-radius: 12px;
+      outline: none;
+      box-sizing: border-box;
+      background: var(--input-bg);
+      color: var(--text-main);
+    }
+
+    input[type="number"]:focus { border-color: #4f46e5; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .num-btn {
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: 1px solid #cbd5e0;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.05s;
+    }
+
+    .num-btn:active { transform: scale(0.95); background: #cbd5e0; }
+    .num-btn.submit-btn { background: #16a34a; color: white; border: none; }
+    .num-btn.clear-btn { background: #ef4444; color: white; border: none; }
+
+    .targets-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .target-btn {
+      background: var(--btn-bg);
+      color: var(--text-main);
+      border: 2px solid #4f46e5;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .target-btn:active { transform: scale(0.95); background: #e0e7ff; }
+
+    .custom-btn-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      justify-content: center;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 14px;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 12px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .action-btn:active { transform: scale(0.95); }
+    .btn-true { background-color: #16a34a; }
+    .btn-false { background-color: #ef4444; }
+    .btn-blue { background-color: #3b82f6; }
+    .btn-purple { background-color: #8b5cf6; }
+
+    button.primary-btn {
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      font-size: 17px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button.primary-btn:hover { background-color: #4338ca; }
+    button.primary-btn:active { transform: scale(0.97); }
+
+    button.secondary-btn {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      border: 2px solid #cbd5e0;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+      width: 100%;
+      transition: background-color 0.2s;
+    }
+
+    button.stop-btn {
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 2px solid #fca5a5;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .feedback { height: 24px; margin-top: 10px; font-weight: bold; font-size: 15px; }
+    .correct { color: #16a34a; }
+    .wrong { color: #dc2626; }
+
+    .stars { font-size: 38px; margin: 5px 0; }
+
+    .result-box {
+      background: var(--btn-bg);
+      border-radius: 16px;
+      padding: 12px;
+      margin: 12px 0;
+      border: 2px dashed #94a3b8;
+    }
+
+    .result-item { font-size: 16px; margin: 6px 0; font-weight: 600; }
+
+    .breakdown-list {
+      text-align: left;
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-top: 8px;
+      border-top: 1px solid #cbd5e0;
+      padding-top: 6px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="main-card">
+    <div class="theme-selector">
+      <button class="theme-btn" onclick="setTheme('default')" title="Светлая">☀️</button>
+      <button class="theme-btn" onclick="setTheme('space')" title="Космос">🚀</button>
+      <button class="theme-btn" onclick="setTheme('forest')" title="Лес">🌲</button>
+      <button class="theme-btn" onclick="setTheme('neon')" title="Неон">⚡</button>
+    </div>
+
+    <h1>🧮 Математика MAX</h1>
+    <div class="high-score-badge">🏆 Рекорд (<span id="mode-name-record">Время</span>): <span id="best-score">0</span></div>
+
+    <!-- 1. Экран старта -->
+    <div id="start-screen">
+
+      <div class="setting-group">
+        <div class="setting-title">🎮 Выбери режим игры:</div>
+        <div class="btn-group">
+          <button class="opt-btn active" onclick="selectGameMode('time', this)">⏳ Время</button>
+          <button class="opt-btn" onclick="selectGameMode('detective', this)">🔍 Детектив</button>
+          <button class="opt-btn" onclick="selectGameMode('sweeper', this)">💣 Сапёр</button>
+          <button class="opt-btn" onclick="selectGameMode('shooting', this)">🎯 Мишени</button>
+          <button class="opt-btn" onclick="selectGameMode('boss', this)">👹 Босс-файт</button>
+          <button class="opt-btn" onclick="selectGameMode('grid', this)">🧩 Сетка 2x2</button>
+          <button class="opt-btn" onclick="selectGameMode('target', this)">🏁 Цель</button>
+          <button class="opt-btn" onclick="selectGameMode('survival', this)">❤️ 3 Жизни</button>
+          <button class="opt-btn" onclick="selectGameMode('shop', this)">🛍 Магазин</button>
+          <button class="opt-btn" onclick="selectGameMode('tf', this)">❓ Верно/Нет</button>
+          <button class="opt-btn" onclick="selectGameMode('chain', this)">⛓️ Цепочки</button>
+          <button class="opt-btn" onclick="selectGameMode('compare', this)">⚖️ Сравнение</button>
+          <button class="opt-btn" onclick="selectGameMode('sniper', this)">🎯 Снайпер</button>
+          <button class="opt-btn" onclick="selectGameMode('flash', this)">🎴 Флеш</button>
+        </div>
+      </div>
+
+      <!-- Общее время для стандартных режимов -->
+      <div class="setting-group" id="setting-time-group">
+        <div class="setting-title">⏱ Общее время:</div>
+        <div class="btn-group">
+          <button class="opt-btn" onclick="selectOption('duration', 30, this)">30с</button>
+          <button class="opt-btn active" onclick="selectOption('duration', 60, this)">60с</button>
+          <button class="opt-btn" onclick="selectOption('duration', 120, this)">120с</button>
+        </div>
+      </div>
+
+      <!-- Динамический регулятор целей для режима "Цель" -->
+      <div class="setting-group hidden" id="setting-target-group">
+        <div class="setting-title">🏁 Цель (число верных ответов):</div>
+        <div class="btn-group">
+          <button class="opt-btn" onclick="selectOption('targetCount', 5, this)">5</button>
+          <button class="opt-btn active" onclick="selectOption('targetCount', 10, this)">10</button>
+          <button class="opt-btn" onclick="selectOption('targetCount', 15, this)">15</button>
+          <button class="opt-btn" onclick="selectOption('targetCount', 20, this)">20</button>
+          <button class="opt-btn" onclick="selectOption('targetCount', 25, this)">25</button>
+          <button class="opt-btn" onclick="selectOption('targetCount', 50, this)">50</button>
+        </div>
+      </div>
+
+      <!-- Динамический регулятор бомбы для режима "Сапёр" -->
+      <div class="setting-group hidden" id="setting-sweeper-group">
+        <div class="setting-title">💣 Базовое время фитиля бомбы:</div>
+        <div class="btn-group">
+          <button class="opt-btn" onclick="selectOption('sweeperBaseTime', 3000, this)">⚡ 3 сек (Экстрим)</button>
+          <button class="opt-btn active" onclick="selectOption('sweeperBaseTime', 5000, this)">🔥 5 сек (Нормально)</button>
+          <button class="opt-btn" onclick="selectOption('sweeperBaseTime', 8000, this)">🛡️ 8 сек (Спокойно)</button>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <div class="setting-title">⚙️ Сложность / Диапазоны:</div>
+        <div class="btn-group" style="margin-bottom: 8px;">
+          <button class="opt-btn" onclick="selectOption('difficulty', 'easy', this)">🟢 Легко</button>
+          <button class="opt-btn active" onclick="selectOption('difficulty', 'medium', this)">🟡 Средне</button>
+          <button class="opt-btn" onclick="selectOption('difficulty', 'hard', this)">🔴 Сложно</button>
+          <button class="opt-btn" onclick="selectOption('difficulty', 'custom', this)">🔧 Своя</button>
+        </div>
+
+        <div class="range-inputs hidden" id="custom-range-box">
+          <input type="number" id="custom-min" placeholder="Мин (1)" value="2">
+          <span>—</span>
+          <input type="number" id="custom-max" placeholder="Макс (20)" value="12">
+        </div>
+      </div>
+
+      <div class="setting-group" id="ops-setting-group">
+        <div class="setting-title">➕ Выбери операции и функции:</div>
+        <div class="ops-grid">
+          <label class="op-checkbox"><input type="checkbox" id="op-add" checked> 🟥 Сложение</label>
+          <label class="op-checkbox"><input type="checkbox" id="op-sub" checked> 🟦 Вычитание</label>
+          <label class="op-checkbox"><input type="checkbox" id="op-mul" checked> 🟨 Умножение</label>
+          <label class="op-checkbox"><input type="checkbox" id="op-div" checked> 🟩 Деление</label>
+        </div>
+        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+          <label class="op-checkbox"><input type="checkbox" id="mode-equation"> 🧩 Уравнения (найти X)</label>
+          <label class="op-checkbox"><input type="checkbox" id="mode-numpad" checked> 📱 Экранная клавиатура (Нумпад)</label>
+          <label class="op-checkbox"><input type="checkbox" id="mode-tts"> 🔊 Читать примеры вслух</label>
+        </div>
+      </div>
+
+      <button class="primary-btn" onclick="startGame()">Начать игру 🚀</button>
+    </div>
+
+    <!-- 2. Игровой экран -->
+    <div id="game-screen" class="hidden">
+      <div class="stats-bar">
+        <span class="timer" id="timer-display">⏳ <span id="time-left">60</span>с</span>
+        <span class="score">✅ <span id="score-correct">0</span> | ❌ <span id="score-wrong">0</span></span>
+      </div>
+
+      <!-- Шкала Сапёра -->
+      <div class="bar-container hidden" id="sweeper-container">
+        <div style="font-size: 12px; font-weight: bold; color: #ea580c;">💣 Фитиль бомбы (<span id="sweeper-current-time-text">5.0</span>с)!</div>
+        <div class="bar-outer"><div class="bar-inner bomb-fuse" id="bomb-fuse-bar"></div></div>
+      </div>
+
+      <!-- Полосы HP для Босс-файта -->
+      <div class="bar-container hidden" id="boss-container">
+        <div style="font-size: 12px; font-weight: bold;">👹 HP Босса: <span id="boss-hp-text">100/100</span></div>
+        <div class="bar-outer"><div class="bar-inner boss-hp" id="boss-hp-bar"></div></div>
+
+        <div style="font-size: 12px; font-weight: bold; margin-top: 4px;">🛡️ Твоё HP: <span id="player-hp-text">100/100</span></div>
+        <div class="bar-outer"><div class="bar-inner player-hp" id="player-hp-bar"></div></div>
+      </div>
+
+      <div class="combo-badge" id="combo-badge">🔥 КОМБО x3!</div>
+
+      <div class="problem" id="problem-text">? + ?</div>
+
+      <!-- Магическая сетка 2x2 -->
+      <div class="grid-container hidden" id="grid-box">
+        <div class="grid-cell" id="g00">a</div>
+        <div class="grid-cell" id="g01">b</div>
+        <div class="grid-cell sum" id="g0s">s1</div>
+
+        <div class="grid-cell" id="g10">c</div>
+        <div class="grid-cell" id="g11">d</div>
+        <div class="grid-cell sum" id="g1s">s2</div>
+
+        <div class="grid-cell sum" id="gc0">s3</div>
+        <div class="grid-cell sum" id="gc1">s4</div>
+        <div class="grid-cell"></div>
+      </div>
+
+      <!-- Ввод для стандартных режимов (Числовой) -->
+      <form onsubmit="checkAnswer(event)" id="answer-form">
+        <input type="number" id="user-answer" placeholder="Ответ" autocomplete="off" readonly>
+
+        <!-- Нумпад -->
+        <div class="numpad" id="numpad-container">
+          <button type="button" class="num-btn" onclick="appendNum('1')">1</button>
+          <button type="button" class="num-btn" onclick="appendNum('2')">2</button>
+          <button type="button" class="num-btn" onclick="appendNum('3')">3</button>
+          <button type="button" class="num-btn" onclick="appendNum('4')">4</button>
+          <button type="button" class="num-btn" onclick="appendNum('5')">5</button>
+          <button type="button" class="num-btn" onclick="appendNum('6')">6</button>
+          <button type="button" class="num-btn" onclick="appendNum('7')">7</button>
+          <button type="button" class="num-btn" onclick="appendNum('8')">8</button>
+          <button type="button" class="num-btn" onclick="appendNum('9')">9</button>
+          <button type="button" class="num-btn clear-btn" onclick="clearNum()">⌫</button>
+          <button type="button" class="num-btn" onclick="appendNum('0')">0</button>
+          <button type="submit" class="num-btn submit-btn">OK</button>
+        </div>
+
+        <button type="submit" class="primary-btn hidden" id="standard-submit-btn">Ответить</button>
+      </form>
+
+      <!-- Кнопки Мишени (4 варианта) -->
+      <div class="targets-grid hidden" id="targets-container">
+        <button type="button" class="target-btn" id="target-opt-0" onclick="checkChoiceAnswer(this.textContent)"></button>
+        <button type="button" class="target-btn" id="target-opt-1" onclick="checkChoiceAnswer(this.textContent)"></button>
+        <button type="button" class="target-btn" id="target-opt-2" onclick="checkChoiceAnswer(this.textContent)"></button>
+        <button type="button" class="target-btn" id="target-opt-3" onclick="checkChoiceAnswer(this.textContent)"></button>
+      </div>
+
+      <!-- Кнопки ВЕРНО / НЕВЕРНО -->
+      <div class="custom-btn-container hidden" id="tf-container">
+        <button type="button" class="action-btn btn-true" onclick="checkTFAnswer(true)">✅ ВЕРНО</button>
+        <button type="button" class="action-btn btn-false" onclick="checkTFAnswer(false)">❌ НЕВЕРНО</button>
+      </div>
+
+      <!-- Кнопки СРАВНЕНИЕ (< = >) -->
+      <div class="custom-btn-container hidden" id="compare-container">
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('<')">&lt;</button>
+        <button type="button" class="action-btn btn-purple" onclick="checkChoiceAnswer('=')">=</button>
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('>')">&gt;</button>
+      </div>
+
+      <!-- Кнопки СНАЙПЕР (+ - × ÷) -->
+      <div class="custom-btn-container hidden" id="sniper-container">
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('+')">+</button>
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('-')">-</button>
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('×')">×</button>
+        <button type="button" class="action-btn btn-blue" onclick="checkChoiceAnswer('÷')">÷</button>
+      </div>
+
+      <button type="button" class="stop-btn" onclick="endGame()">Закончить игру 🏁</button>
+
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <!-- 3. Экран финиша -->
+    <div id="end-screen" class="hidden">
+      <h2 id="end-title">🏁 Игра завершена!</h2>
+      <div class="stars" id="stars-display">⭐⭐⭐</div>
+
+      <div class="result-box">
+        <div class="result-item" id="result-time-item">⏱ Время: <span id="final-time">0</span>с</div>
+        <div class="result-item correct">✅ Правильно: <span id="final-correct">0</span></div>
+        <div class="result-item wrong">❌ Ошибок: <span id="final-wrong">0</span></div>
+
+        <div class="breakdown-list" id="breakdown-list"></div>
+      </div>
+
+      <p id="final-comment" style="font-weight: bold; margin: 10px 0;"></p>
+
+      <button id="retry-errors-btn" class="secondary-btn hidden" style="border-color: #eab308; color: #ca8a04;" onclick="startErrorRetry()">🔄 Работа над ошибками (<span id="error-count-badge">0</span>)</button>
+
+      <button class="primary-btn" onclick="startGame()">Сыграть ещё раз 🔄</button>
+      <button class="secondary-btn" onclick="goToMenu()">Главное меню ⚙️</button>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. АУДИО ДВИЖОК (Web Audio API)
+    // ==========================================
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'click') {
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.04);
+      } else if (type === 'correct') {
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+      } else if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+      } else if (type === 'crit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+      } else if (type === 'wrong') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+      } else if (type === 'fanfare') {
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+      }
+    }
+
+    function speakText(text) {
+      if (!document.getElementById('mode-tts').checked) return;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'ru-RU';
+        utter.rate = 1.0;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    document.addEventListener('click', initAudio, { once: true });
+
+    function setTheme(theme) {
+      playSound('click');
+      document.body.className = '';
+      if (theme !== 'default') {
+        document.body.classList.add(`theme-${theme}`);
+      }
+    }
+
+    // ==========================================
+    // 2. ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+    // ==========================================
+    let gameMode = 'time';
+    let selectedDifficulty = 'medium';
+    let selectedDuration = 60;
+    let targetCount = 10;
+
+    let bossHp = 100;
+    let playerHp = 100;
+
+    // Регулятор Сапёра
+    let sweeperBaseTime = 5000; // По умолчанию 5000 мс (5 сек)
+    let bombTimeMax = 5000;
+    let bombTimeLeft = 5000;
+    let bombInterval = null;
+
+    let timeLeft = 60;
+    let elapsedTime = 0;
+    let livesLeft = 3;
+    let timerInterval = null;
+    let flashTimer = null;
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let comboStreak = 0;
+    let expectedAnswer = 0;
+    let isTfCorrect = true;
+
+    let currentOpType = 0;
+    let errorsByOp = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
+    let failedProblems = [];
+    let isErrorRetryMode = false;
+
+    const cardEl = document.getElementById('main-card');
+
+    function triggerCardAnim(animClass) {
+      cardEl.classList.remove('bounce', 'shake');
+      void cardEl.offsetWidth;
+      cardEl.classList.add(animClass);
+
+      if (animClass === 'shake') {
+        if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+      }
+    }
+
+    function showDamagePop(amount, isCrit = false) {
+      let targetEl = document.getElementById('problem-text');
+      if (gameMode === 'boss') targetEl = document.getElementById('boss-container');
+
+      const rect = targetEl.getBoundingClientRect();
+      const pop = document.createElement('div');
+
+      pop.className = `damage-pop ${isCrit ? 'crit' : ''}`;
+      pop.innerText = isCrit ? `КРИТ! -${amount}` : `-${amount}`;
+
+      pop.style.left = `${rect.left + rect.width / 2 - 25}px`;
+      pop.style.top = `${rect.top - 10}px`;
+
+      document.body.appendChild(pop);
+      setTimeout(() => pop.remove(), 800);
+    }
+
+    function appendNum(num) {
+      playSound('click');
+      const input = document.getElementById('user-answer');
+      if (input.value.length < 5) input.value += num;
+    }
+
+    function clearNum() {
+      playSound('click');
+      const input = document.getElementById('user-answer');
+      input.value = input.value.slice(0, -1);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const gameScreen = document.getElementById('game-screen');
+      if (gameScreen.classList.contains('hidden')) return;
+
+      const useNumpad = document.getElementById('mode-numpad').checked;
+
+      if (useNumpad && !['tf', 'compare', 'sniper', 'shooting'].includes(gameMode)) {
+        if (e.key >= '0' && e.key <= '9') {
+          appendNum(e.key);
+        } else if (e.key === 'Backspace') {
+          clearNum();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          checkAnswer(e);
+        }
+      }
+    });
+
+    function updateHighScoreDisplay() {
+      let recordKey = 'math_record_' + gameMode;
+      let score = localStorage.getItem(recordKey) || 0;
+      document.getElementById('best-score').textContent = score;
+
+      const names = {
+        'time': 'Время', 'detective': 'Детектив', 'sweeper': 'Сапёр', 'shooting': 'Мишени',
+        'boss': 'Босс', 'grid': 'Сетка', 'target': 'Цель', 'survival': '3 Жизни',
+        'shop': 'Магазин', 'tf': 'Верно/Нет', 'chain': 'Цепочки', 'compare': 'Сравнение',
+        'sniper': 'Снайпер', 'flash': 'Флеш'
+      };
+      document.getElementById('mode-name-record').textContent = names[gameMode] || 'Игры';
+    }
+    updateHighScoreDisplay();
+
+    function selectGameMode(mode, btn) {
+      playSound('click');
+      gameMode = mode;
+      btn.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      document.getElementById('setting-time-group').classList.add('hidden');
+      document.getElementById('setting-target-group').classList.add('hidden');
+      document.getElementById('setting-sweeper-group').classList.add('hidden');
+      document.getElementById('ops-setting-group').classList.remove('hidden');
+
+      if (['time', 'tf', 'chain', 'compare', 'sniper', 'flash', 'shooting', 'detective'].includes(mode)) {
+        document.getElementById('setting-time-group').classList.remove('hidden');
+      }
+      if (mode === 'target') document.getElementById('setting-target-group').classList.remove('hidden');
+      if (mode === 'sweeper') document.getElementById('setting-sweeper-group').classList.remove('hidden');
+
+      if (mode === 'shop' || mode === 'grid') document.getElementById('ops-setting-group').classList.add('hidden');
+
+      updateHighScoreDisplay();
+    }
+
+    function selectOption(key, val, btn) {
+      playSound('click');
+      if (key === 'difficulty') {
+        selectedDifficulty = val;
+        const customBox = document.getElementById('custom-range-box');
+        if (val === 'custom') customBox.classList.remove('hidden');
+        else customBox.classList.add('hidden');
+      }
+      if (key === 'duration') selectedDuration = val;
+      if (key === 'targetCount') targetCount = val;
+      if (key === 'sweeperBaseTime') sweeperBaseTime = val;
+
+      btn.parentElement.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function resetCardBg() {
+      cardEl.classList.remove('bg-multiply', 'bg-add', 'bg-subtract', 'bg-divide', 'bounce', 'shake');
+    }
+
+    function goToMenu() {
+      playSound('click');
+      if (timerInterval) clearInterval(timerInterval);
+      if (bombInterval) clearInterval(bombInterval);
+      if (flashTimer) clearTimeout(flashTimer);
+      resetCardBg();
+      cardEl.classList.remove('super-combo');
+      document.getElementById('end-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+    }
+
+    function updateBossHpUI() {
+      document.getElementById('boss-hp-text').textContent = `${bossHp}/100`;
+      document.getElementById('boss-hp-bar').style.width = `${Math.max(0, bossHp)}%`;
+
+      document.getElementById('player-hp-text').textContent = `${playerHp}/100`;
+      document.getElementById('player-hp-bar').style.width = `${Math.max(0, playerHp)}%`;
+    }
+
+    // Включаем динамический фитиль в сапёре
+    function resetSweeperTimer() {
+      if (bombInterval) clearInterval(bombInterval);
+
+      // С каждым правильным ответом время на решение уменьшается на 5%, но не меньше 1.5 секунды
+      let speedMultiplier = Math.max(0.3, Math.pow(0.95, correctAnswers));
+      bombTimeMax = sweeperBaseTime * speedMultiplier;
+      bombTimeLeft = bombTimeMax;
+
+      document.getElementById('sweeper-current-time-text').textContent = (bombTimeMax / 1000).toFixed(1);
+      document.getElementById('bomb-fuse-bar').style.width = '100%';
+
+      bombInterval = setInterval(() => {
+        bombTimeLeft -= 50;
+        let pct = (bombTimeLeft / bombTimeMax) * 100;
+        document.getElementById('bomb-fuse-bar').style.width = `${Math.max(0, pct)}%`;
+
+        if (bombTimeLeft <= 0) {
+          clearInterval(bombInterval);
+          handleFailure("💥 БОМБА ВЗОРВАЛАСЬ! Время вышло!");
+          generateProblem();
+        }
+      }, 50);
+    }
+
+    function generateProblem() {
+      if (flashTimer) clearTimeout(flashTimer);
+      document.getElementById('grid-box').classList.add('hidden');
+      document.getElementById('problem-text').classList.remove('hidden');
+
+      if (gameMode === 'sweeper') {
+        resetSweeperTimer();
+      }
+
+      if (isErrorRetryMode) {
+        if (failedProblems.length === 0) {
+          endGame();
+          return;
+        }
+        let currentProblem = failedProblems.pop();
+        document.getElementById('problem-text').textContent = currentProblem.text;
+        expectedAnswer = currentProblem.answer;
+        currentOpType = currentProblem.op;
+        speakText(currentProblem.text.replace('=', 'равно'));
+
+        if (gameMode === 'shooting') setupTargetOptions(expectedAnswer);
+        return;
+      }
+
+      // 1. Режим «Детектив»
+      if (gameMode === 'detective') {
+        currentOpType = 11;
+        let icons = ['🍎', '💎', '🔑', '🚀', '⭐', '🐶'];
+        let icon = icons[Math.floor(Math.random() * icons.length)];
+
+        let hiddenNum = Math.floor(Math.random() * 8) + 2;
+        let adder = Math.floor(Math.random() * 10) + 1;
+        let sum = hiddenNum + adder;
+
+        let multiplier = Math.floor(Math.random() * 4) + 2;
+        expectedAnswer = hiddenNum * multiplier;
+
+        document.getElementById('problem-text').innerHTML = `
+          <div style="font-size: 20px; color: var(--text-sub);">${icon} + ${adder} = ${sum}</div>
+          <div>${icon} × ${multiplier} = <span style="color:#4f46e5;">?</span></div>
+        `;
+        speakText(`Найди чему равно ${icon} умножить на ${multiplier}`);
+        return;
+      }
+
+      // 2. Режим «Магическая сетка 2x2»
+      if (gameMode === 'grid') {
+        currentOpType = 10;
+        document.getElementById('problem-text').classList.add('hidden');
+        document.getElementById('grid-box').classList.remove('hidden');
+
+        let a = Math.floor(Math.random() * 9) + 1;
+        let b = Math.floor(Math.random() * 9) + 1;
+        let c = Math.floor(Math.random() * 9) + 1;
+        let d = Math.floor(Math.random() * 9) + 1;
+
+        let cells = [
+          { el: 'g00', val: a }, { el: 'g01', val: b },
+          { el: 'g10', val: c }, { el: 'g11', val: d }
+        ];
+
+        let missingIdx = Math.floor(Math.random() * 4);
+        expectedAnswer = cells[missingIdx].val;
+
+        cells.forEach((cell, idx) => {
+          document.getElementById(cell.el).textContent = (idx === missingIdx) ? '❓' : cell.val;
+          document.getElementById(cell.el).classList.toggle('target', idx === missingIdx);
+        });
+
+        document.getElementById('g0s').textContent = a + b;
+        document.getElementById('g1s').textContent = c + d;
+        document.getElementById('gc0').textContent = a + c;
+        document.getElementById('gc1').textContent = b + d;
+
+        speakText('Найди пропущенное число в сетке');
+        return;
+      }
+
+      // 3. Режим «Цепочки»
+      if (gameMode === 'chain') {
+        currentOpType = 7;
+        let n1 = Math.floor(Math.random() * 8) + 2;
+        let n2 = Math.floor(Math.random() * 6) + 2;
+        let n3 = Math.floor(Math.random() * 10) + 1;
+        let isMulFirst = Math.random() < 0.5;
+
+        if (isMulFirst) {
+          expectedAnswer = (n1 * n2) + n3;
+          document.getElementById('problem-text').textContent = `${n1} × ${n2} + ${n3}`;
+        } else {
+          expectedAnswer = n3 + (n1 * n2);
+          document.getElementById('problem-text').textContent = `${n3} + ${n1} × ${n2}`;
+        }
+        speakText(document.getElementById('problem-text').textContent.replace('×', 'умножить на'));
+        return;
+      }
+
+      // 4. Режим «Сравнение»
+      if (gameMode === 'compare') {
+        currentOpType = 8;
+        let leftVal = Math.floor(Math.random() * 20) + 1;
+        let rightVal = Math.floor(Math.random() * 20) + 1;
+
+        let lStr = `${leftVal}`;
+        let rStr = `${rightVal}`;
+
+        if (Math.random() < 0.5) {
+          let a = Math.floor(Math.random() * 10) + 1;
+          lStr = `${a} + ${leftVal - a > 0 ? leftVal - a : 1}`;
+          leftVal = eval(lStr);
+        }
+
+        expectedAnswer = leftVal < rightVal ? '<' : (leftVal > rightVal ? '>' : '=');
+        document.getElementById('problem-text').textContent = `${lStr} [ ? ] ${rStr}`;
+        return;
+      }
+
+      // 5. Режим «Снайпер»
+      if (gameMode === 'sniper') {
+        currentOpType = 9;
+        let ops = ['+', '-', '×', '÷'];
+        let chosenOp = ops[Math.floor(Math.random() * ops.length)];
+        let n1, n2, res;
+
+        if (chosenOp === '+') { n1 = Math.floor(Math.random() * 20) + 1; n2 = Math.floor(Math.random() * 20) + 1; res = n1 + n2; }
+        if (chosenOp === '-') { n2 = Math.floor(Math.random() * 15) + 1; res = Math.floor(Math.random() * 15) + 1; n1 = res + n2; }
+        if (chosenOp === '×') { n1 = Math.floor(Math.random() * 9) + 2; n2 = Math.floor(Math.random() * 9) + 2; res = n1 * n2; }
+        if (chosenOp === '÷') { n2 = Math.floor(Math.random() * 8) + 2; res = Math.floor(Math.random() * 9) + 2; n1 = res * n2; }
+
+        expectedAnswer = chosenOp;
+        document.getElementById('problem-text').textContent = `${n1}  [ ? ]  ${n2} = ${res}`;
+        return;
+      }
+
+      // 6. Режим «Верно/Неверно»
+      if (gameMode === 'tf') {
+        currentOpType = 6;
+        let n1 = Math.floor(Math.random() * 12) + 1;
+        let n2 = Math.floor(Math.random() * 10) + 1;
+        let isAdd = Math.random() < 0.5;
+        let realRes = isAdd ? n1 + n2 : n1 * n2;
+        let sym = isAdd ? '+' : '×';
+
+        isTfCorrect = Math.random() < 0.5;
+        let displayRes = isTfCorrect ? realRes : realRes + (Math.random() < 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
+
+        document.getElementById('problem-text').style.fontSize = '34px';
+        document.getElementById('problem-text').textContent = `${n1} ${sym} ${n2} = ${displayRes}`;
+        speakText(`${n1} ${isAdd ? 'плюс' : 'умножить на'} ${n2} равно ${displayRes}`);
+        return;
+      }
+
+      // 7. Режим «Магазин»
+      if (gameMode === 'shop') {
+        currentOpType = 5;
+        let maxPrice = selectedDifficulty === 'easy' ? 50 : (selectedDifficulty === 'medium' ? 100 : 500);
+        let price = Math.floor(Math.random() * (maxPrice - 5)) + 5;
+        let paidOptions = [10, 20, 50, 100, 200, 500, 1000].filter(v => v > price);
+        let paid = paidOptions[Math.floor(Math.random() * paidOptions.length)];
+
+        expectedAnswer = paid - price;
+        document.getElementById('problem-text').style.fontSize = '22px';
+        document.getElementById('problem-text').textContent = `🛒 Товар: ${price} манат | 💵 Дали: ${paid} манат | Сдача?`;
+        speakText(`Товар стоит ${price} манат. Дали ${paid} манат. Какая сдача?`);
+        return;
+      }
+
+      // Стандартный генератор
+      document.getElementById('problem-text').style.fontSize = '38px';
+
+      let allowedOps = [];
+      if (document.getElementById('op-add').checked) allowedOps.push(2);
+      if (document.getElementById('op-sub').checked) allowedOps.push(3);
+      if (document.getElementById('op-mul').checked) allowedOps.push(1);
+      if (document.getElementById('op-div').checked) allowedOps.push(4);
+
+      if (allowedOps.length === 0) {
+        alert("Пожалуйста, выбери хотя бы одну операцию!");
+        goToMenu();
+        return;
+      }
+
+      let minNum = 1, maxNum1 = 50, maxNum2 = 20, maxProd = 50;
+
+      if (selectedDifficulty === 'easy') { maxNum1 = 20; maxNum2 = 10; maxProd = 30; }
+      else if (selectedDifficulty === 'hard') { maxNum1 = 100; maxNum2 = 50; maxProd = 100; }
+      else if (selectedDifficulty === 'custom') {
+        minNum = parseInt(document.getElementById('custom-min').value, 10) || 1;
+        maxNum1 = parseInt(document.getElementById('custom-max').value, 10) || 20;
+        maxNum2 = maxNum1;
+        maxProd = maxNum1 * maxNum1;
+      }
+
+      let found = false;
+      let num1, num2, operation, symbol;
+
+      while (!found) {
+        num1 = Math.floor(Math.random() * (maxNum1 - minNum + 1)) + minNum;
+        num2 = Math.floor(Math.random() * (maxNum2 - minNum + 1)) + minNum;
+        operation = allowedOps[Math.floor(Math.random() * allowedOps.length)];
+
+        resetCardBg();
+
+        switch (operation) {
+          case 1:
+            if (num1 * num2 <= maxProd || selectedDifficulty === 'custom') {
+              found = true; symbol = '×';
+              setupEquationOrNormal(num1, num2, symbol, num1 * num2, 'умножить на');
+              cardEl.classList.add('bg-multiply');
+            }
+            break;
+          case 2:
+            found = true; symbol = '+';
+            setupEquationOrNormal(num1, num2, symbol, num1 + num2, 'плюс');
+            cardEl.classList.add('bg-add');
+            break;
+          case 3:
+            if (num1 - num2 > 0) {
+              found = true; symbol = '-';
+              setupEquationOrNormal(num1, num2, symbol, num1 - num2, 'минус');
+              cardEl.classList.add('bg-subtract');
+            }
+            break;
+          case 4:
+            if (num1 % num2 === 0) {
+              found = true; symbol = '÷';
+              setupEquationOrNormal(num1, num2, symbol, num1 / num2, 'разделить на');
+              cardEl.classList.add('bg-divide');
+            }
+            break;
+        }
+      }
+
+      currentOpType = operation;
+
+      if (gameMode === 'shooting') {
+        setupTargetOptions(expectedAnswer);
+      }
+
+      if (gameMode === 'flash') {
+        flashTimer = setTimeout(() => {
+          document.getElementById('problem-text').textContent = '❓ ❓ ❓';
+        }, 1200);
+      }
+    }
+
+    function setupTargetOptions(correctVal) {
+      let options = new Set([correctVal]);
+      while (options.size < 4) {
+        let fake = correctVal + (Math.floor(Math.random() * 7) - 3);
+        if (fake >= 0 && fake !== correctVal) options.add(fake);
+      }
+      let arr = Array.from(options).sort(() => Math.random() - 0.5);
+      for (let i = 0; i < 4; i++) {
+        document.getElementById(`target-opt-${i}`).textContent = arr[i];
+      }
+    }
+
+    function setupEquationOrNormal(n1, n2, sym, res, voiceWord) {
+      const isEquation = document.getElementById('mode-equation').checked;
+      let textToShow = "";
+      let textToSpeak = "";
+
+      if (isEquation) {
+        if (Math.random() < 0.5) {
+          textToShow = `X ${sym} ${n2} = ${res}`;
+          textToSpeak = `Икс ${voiceWord} ${n2} равно ${res}`;
+          expectedAnswer = n1;
+        } else {
+          textToShow = `${n1} ${sym} X = ${res}`;
+          textToSpeak = `${n1} ${voiceWord} икс равно ${res}`;
+          expectedAnswer = n2;
+        }
+      } else {
+        textToShow = `${n1} ${sym} ${n2}`;
+        textToSpeak = `${n1} ${voiceWord} ${n2}`;
+        expectedAnswer = res;
+      }
+
+      document.getElementById('problem-text').textContent = textToShow;
+      speakText(textToSpeak);
+    }
+
+    function startGame() {
+      initAudio();
+      playSound('click');
+      isErrorRetryMode = false;
+      correctAnswers = 0;
+      wrongAnswers = 0;
+      comboStreak = 0;
+      elapsedTime = 0;
+      livesLeft = 3;
+      bossHp = 100;
+      playerHp = 100;
+      failedProblems = [];
+      errorsByOp = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0 };
+
+      const formEl = document.getElementById('answer-form');
+      const tfEl = document.getElementById('tf-container');
+      const compareEl = document.getElementById('compare-container');
+      const sniperEl = document.getElementById('sniper-container');
+      const targetsEl = document.getElementById('targets-container');
+      const bossEl = document.getElementById('boss-container');
+      const sweeperEl = document.getElementById('sweeper-container');
+
+      const useNumpad = document.getElementById('mode-numpad').checked;
+      const numpadEl = document.getElementById('numpad-container');
+      const standardBtn = document.getElementById('standard-submit-btn');
+      const answerInput = document.getElementById('user-answer');
+
+      formEl.classList.add('hidden');
+      tfEl.classList.add('hidden');
+      compareEl.classList.add('hidden');
+      sniperEl.classList.add('hidden');
+      targetsEl.classList.add('hidden');
+      bossEl.classList.add('hidden');
+      sweeperEl.classList.add('hidden');
+
+      if (gameMode === 'boss') {
+        bossEl.classList.remove('hidden');
+        updateBossHpUI();
+      }
+
+      if (gameMode === 'sweeper') {
+        sweeperEl.classList.remove('hidden');
+      }
+
+      if (gameMode === 'tf') {
+        tfEl.classList.remove('hidden');
+      } else if (gameMode === 'compare') {
+        compareEl.classList.remove('hidden');
+      } else if (gameMode === 'sniper') {
+        sniperEl.classList.remove('hidden');
+      } else if (gameMode === 'shooting') {
+        targetsEl.classList.remove('hidden');
+      } else {
+        formEl.classList.remove('hidden');
+        if (useNumpad) {
+          numpadEl.classList.remove('hidden');
+          standardBtn.classList.add('hidden');
+          answerInput.readOnly = true;
+        } else {
+          numpadEl.classList.add('hidden');
+          standardBtn.classList.remove('hidden');
+          answerInput.readOnly = false;
+        }
+      }
+
+      cardEl.classList.remove('super-combo');
+      document.getElementById('score-correct').textContent = '0';
+      document.getElementById('score-wrong').textContent = '0';
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('combo-badge').classList.remove('active');
+
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('end-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+
+      if (['time', 'shop', 'tf', 'chain', 'compare', 'sniper', 'flash', 'grid', 'shooting', 'detective', 'sweeper'].includes(gameMode)) {
+        timeLeft = selectedDuration;
+        document.getElementById('timer-display').innerHTML = `⏳ <span id="time-left">${timeLeft}</span>с`;
+      } else if (gameMode === 'target') {
+        document.getElementById('timer-display').innerHTML = `🎯 <span id="target-progress">0</span>/${targetCount}`;
+      } else if (gameMode === 'survival') {
+        document.getElementById('timer-display').innerHTML = `❤️ <span id="time-left">3</span>`;
+      } else if (gameMode === 'boss') {
+        document.getElementById('timer-display').innerHTML = `⚔️ БОЙ!`;
+      }
+
+      generateProblem();
+      if (!['tf', 'compare', 'sniper', 'shooting'].includes(gameMode) && !useNumpad) {
+        setTimeout(() => answerInput.focus(), 50);
+      }
+
+      if (timerInterval) clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        if (['time', 'shop', 'tf', 'chain', 'compare', 'sniper', 'flash', 'grid', 'shooting', 'detective', 'sweeper'].includes(gameMode)) {
+          timeLeft--;
+          document.getElementById('time-left').textContent = timeLeft;
+          if (timeLeft <= 0) endGame();
+        } else if (gameMode === 'target') {
+          elapsedTime++;
+        }
+      }, 1000);
+    }
+
+    function checkTFAnswer(userChoice) {
+      if (userChoice === isTfCorrect) {
+        handleSuccess();
+      } else {
+        handleFailure(`Неверно! Это было ${isTfCorrect ? 'ВЕРНО' : 'НЕВЕРНО'}`);
+      }
+      generateProblem();
+    }
+
+    function checkChoiceAnswer(userChoice) {
+      if (String(userChoice) === String(expectedAnswer)) {
+        handleSuccess();
+      } else {
+        handleFailure(`Ошибка! Правильно: ${expectedAnswer}`);
+      }
+      generateProblem();
+    }
+
+    function startErrorRetry() {
+      playSound('click');
+      isErrorRetryMode = true;
+      correctAnswers = 0;
+      wrongAnswers = 0;
+      comboStreak = 0;
+
+      document.getElementById('score-correct').textContent = '0';
+      document.getElementById('score-wrong').textContent = '0';
+      document.getElementById('feedback').textContent = '';
+
+      document.getElementById('end-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      document.getElementById('timer-display').innerHTML = `🔄 Ошибки`;
+
+      generateProblem();
+    }
+
+    function registerWrongAnswer() {
+      wrongAnswers++;
+      comboStreak = 0;
+      errorsByOp[currentOpType]++;
+      cardEl.classList.remove('super-combo');
+
+      failedProblems.push({
+        text: document.getElementById('problem-text').textContent || 'Сетка 2x2',
+        answer: expectedAnswer,
+        op: currentOpType
+      });
+
+      playSound('wrong');
+      triggerCardAnim('shake');
+
+      document.getElementById('combo-badge').classList.remove('active');
+      document.getElementById('score-wrong').textContent = wrongAnswers;
+
+      if (gameMode === 'survival') {
+        livesLeft--;
+        document.getElementById('time-left').textContent = livesLeft;
+        if (livesLeft <= 0) endGame();
+      }
+
+      if (gameMode === 'boss') {
+        playerHp -= 20;
+        updateBossHpUI();
+        if (playerHp <= 0) endGame();
+      }
+    }
+
+    function handleSuccess() {
+      correctAnswers++;
+      comboStreak++;
+
+      if (gameMode === 'target') {
+        const progEl = document.getElementById('target-progress');
+        if (progEl) progEl.textContent = correctAnswers;
+      }
+
+      const isCrit = comboStreak % 5 === 0;
+      playSound(isCrit ? 'crit' : (gameMode === 'boss' ? 'hit' : 'correct'));
+      triggerCardAnim('bounce');
+
+      document.getElementById('score-correct').textContent = correctAnswers;
+      const feedbackEl = document.getElementById('feedback');
+      feedbackEl.textContent = isCrit ? 'МЕГА-УДАР! 🔥' : 'Правильно! 🎉';
+      feedbackEl.className = 'feedback correct';
+
+      if (gameMode === 'boss') {
+        let dmg = 15 + (isCrit ? 20 : (comboStreak > 2 ? 10 : 0));
+        bossHp -= dmg;
+        updateBossHpUI();
+        showDamagePop(dmg, isCrit);
+        if (bossHp <= 0) endGame();
+      } else {
+        if (isCrit) showDamagePop(comboStreak * 10, true);
+      }
+
+      const comboEl = document.getElementById('combo-badge');
+      if (comboStreak >= 3) {
+        comboEl.textContent = `🔥 КОМБО x${comboStreak}!`;
+        comboEl.classList.add('active');
+      }
+
+      if (comboStreak >= 5) {
+        cardEl.classList.add('super-combo');
+      }
+
+      if (gameMode === 'target' && correctAnswers >= targetCount) {
+        endGame();
+      }
+    }
+
+    function handleFailure(msg) {
+      registerWrongAnswer();
+      const feedbackEl = document.getElementById('feedback');
+      feedbackEl.textContent = msg;
+      feedbackEl.className = 'feedback wrong';
+    }
+
+    function checkAnswer(event) {
+      if (event) event.preventDefault();
+
+      const inputEl = document.getElementById('user-answer');
+      const userAnswer = parseInt(inputEl.value, 10);
+
+      if (isNaN(userAnswer)) return;
+
+      if (userAnswer === expectedAnswer) {
+        handleSuccess();
+      } else {
+        handleFailure(`Ошибка! Правильно: ${expectedAnswer}`);
+      }
+
+      inputEl.value = '';
+      generateProblem();
+    }
+
+    function endGame() {
+      clearInterval(timerInterval);
+      if (bombInterval) clearInterval(bombInterval);
+      if (flashTimer) clearTimeout(flashTimer);
+      resetCardBg();
+      cardEl.classList.remove('super-combo');
+
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('end-screen').classList.remove('hidden');
+
+      document.getElementById('final-correct').textContent = correctAnswers;
+      document.getElementById('final-wrong').textContent = wrongAnswers;
+
+      const starsEl = document.getElementById('stars-display');
+      const commentEl = document.getElementById('final-comment');
+      const resultTimeItem = document.getElementById('result-time-item');
+
+      const retryBtn = document.getElementById('retry-errors-btn');
+      if (failedProblems.length > 0 && !isErrorRetryMode) {
+        retryBtn.classList.remove('hidden');
+        document.getElementById('error-count-badge').textContent = failedProblems.length;
+      } else {
+        retryBtn.classList.add('hidden');
+      }
+
+      let recordKey = 'math_record_' + gameMode;
+      let currentRecord = localStorage.getItem(recordKey) || 0;
+      if (correctAnswers > currentRecord && !isErrorRetryMode) {
+        localStorage.setItem(recordKey, correctAnswers);
+        updateHighScoreDisplay();
+      }
+
+      resultTimeItem.style.display = (gameMode === 'target') ? "block" : "none";
+      if (gameMode === 'target') document.getElementById('final-time').textContent = elapsedTime;
+
+      if (gameMode === 'boss') {
+        if (bossHp <= 0) {
+          starsEl.textContent = "🏆🏆🏆";
+          commentEl.textContent = "🎉 ТЫ ПОБЕДИЛ БОССА!";
+          playSound('fanfare');
+          if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        } else {
+          starsEl.textContent = "💀";
+          commentEl.textContent = "Босс оказался сильнее... Попробуй ещё раз!";
+        }
+      } else if (correctAnswers >= 15) {
+        starsEl.textContent = "⭐⭐⭐";
+        commentEl.textContent = "🌟 Ты супер-чемпион!";
+        playSound('fanfare');
+        if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      } else if (correctAnswers >= 8) {
+        starsEl.textContent = "⭐⭐";
+        commentEl.textContent = "👍 Отличный результат!";
+      } else {
+        starsEl.textContent = "⭐";
+        commentEl.textContent = "💡 В следующий раз получится ещё лучше!";
+      }
+
+      const opNames = {
+        1: '🟨 Умножение', 2: '🟥 Сложение', 3: '🟦 Вычитание', 4: '🟩 Деление',
+        5: '🛒 Магазин', 6: '❓ Верно/Нет', 7: '⛓️ Цепочки', 8: '⚖️ Сравнение',
+        9: '🎯 Снайпер', 10: '🧩 Сетка 2x2', 11: '🔍 Детектив'
+      };
+      let breakdownHtml = '<b>Ошибки по темам:</b><br>';
+      let hasErrors = false;
+      for (let op in errorsByOp) {
+        if (errorsByOp[op] > 0) {
+          breakdownHtml += `${opNames[op]}: ${errorsByOp[op]}<br>`;
+          hasErrors = true;
+        }
+      }
+      if (!hasErrors) breakdownHtml += 'Идеально! Ни одной ошибки!';
+      document.getElementById('breakdown-list').innerHTML = breakdownHtml;
+    }
+  </script>
+</body>
+</html>
